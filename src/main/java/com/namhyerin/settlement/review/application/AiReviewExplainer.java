@@ -6,6 +6,5 @@ import com.namhyerin.settlement.review.domain.SettlementTransaction;
 import java.util.List;
 
 public interface AiReviewExplainer {
-    String explain(SettlementTransaction transaction, List<ReviewViolation> violations);
+    AiReviewExplanation explain(SettlementTransaction transaction, List<ReviewViolation> violations);
 }
-

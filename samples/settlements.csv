@@ -1,0 +1,4 @@
+transactionId,transactionDate,merchant,amount,receiptNumber
+T-001,2026-08-18,ABC상사,1250000,
+T-002,2026-08-18,ABC상사,1250000,R-002
+T-003,2026-08-18,편의점,45000,R-003

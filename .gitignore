@@ -5,3 +5,4 @@ build/
 *.iml
 .env
 application-local.yml
+data/

@@ -1,8 +1,24 @@
 spring:
   application:
     name: ai-settlement-review-agent
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/settlement_review?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true}
+    username: ${DATABASE_USERNAME:settlement}
+    password: ${DATABASE_PASSWORD:settlement}
+  sql:
+    init:
+      mode: always
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
+
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  model: ${OPENAI_MODEL:gpt-4.1-mini}
 
 server:
   error:
     include-message: always
-

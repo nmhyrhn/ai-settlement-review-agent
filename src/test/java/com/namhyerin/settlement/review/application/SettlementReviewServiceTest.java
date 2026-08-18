@@ -47,7 +47,7 @@ class SettlementReviewServiceTest {
         SettlementReviewService.ReviewResult result = service.review(List.of(normal)).getFirst();
 
         assertThat(result.violations()).isEmpty();
-        assertThat(result.explanation()).contains("발견되지 않았습니다");
+        assertThat(result.explanation().summary()).contains("발견되지 않았습니다");
     }
 
     private SettlementTransaction transaction(String id, String amount, String receiptNumber) {
@@ -60,4 +60,3 @@ class SettlementReviewServiceTest {
         );
     }
 }
-

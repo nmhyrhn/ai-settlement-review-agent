@@ -34,8 +34,7 @@ public class SettlementReviewService {
     public record ReviewResult(
             SettlementTransaction transaction,
             List<ReviewViolation> violations,
-            String explanation
+            AiReviewExplanation explanation
     ) {
     }
 }
-
