@@ -1,0 +1,52 @@
+type Csrf = { token: string; headerName: string }
+
+async function csrf(): Promise<Csrf> {
+  const response = await fetch('/api/auth/csrf', { credentials: 'include' })
+  if (!response.ok) throw new Error('보안 토큰을 가져오지 못했습니다.')
+  return response.json()
+}
+
+async function message(response: Response): Promise<string> {
+  const body = await response.json().catch(() => ({}))
+  return body.message ?? '요청을 처리하지 못했습니다.'
+}
+
+export async function register(email: string, password: string) {
+  const token = await csrf()
+  const response = await fetch('/api/auth/register', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', [token.headerName]: token.token },
+    body: JSON.stringify({ email, password }),
+  })
+  if (!response.ok) throw new Error(await message(response))
+}
+
+export async function login(email: string, password: string) {
+  const token = await csrf()
+  const form = new URLSearchParams({ username: email, password })
+  const response = await fetch('/api/auth/login', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', [token.headerName]: token.token },
+    body: form,
+  })
+  if (!response.ok) throw new Error(await message(response))
+}
+
+export async function currentUser() {
+  const response = await fetch('/api/auth/me', { credentials: 'include' })
+  if (response.status === 401) return null
+  if (!response.ok) throw new Error(await message(response))
+  return response.json() as Promise<{ email: string; role: string }>
+}
+
+export async function logout() {
+  const token = await csrf()
+  const response = await fetch('/api/auth/logout', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { [token.headerName]: token.token },
+  })
+  if (!response.ok) throw new Error(await message(response))
+}
