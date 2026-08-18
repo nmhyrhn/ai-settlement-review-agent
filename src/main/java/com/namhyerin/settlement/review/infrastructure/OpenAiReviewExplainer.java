@@ -44,10 +44,13 @@ public class OpenAiReviewExplainer implements AiReviewExplainer {
 
     @Override
     public AiReviewExplanation explain(SettlementTransaction transaction, List<ReviewViolation> violations) {
+        // API 키가 없거나 정상 거래이면 외부 호출 없이 기본 설명을 사용함
         if (apiKey.isBlank() || violations.isEmpty()) return fallback.explain(transaction, violations);
 
         try {
+            // Java가 판정한 거래와 위반 결과만 AI 입력으로 만듦
             String input = objectMapper.writeValueAsString(Map.of("transaction", transaction, "violations", violations));
+            // AI 응답을 화면에서 사용하는 JSON 구조로 제한함
             Map<String, Object> schema = Map.of(
                     "type", "object",
                     "properties", Map.of(
@@ -71,11 +74,13 @@ public class OpenAiReviewExplainer implements AiReviewExplainer {
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            // HTTP 오류이면 Java 검수 결과를 보존한 채 기본 설명으로 복구함
             if (response.statusCode() / 100 != 2) return fallback.explain(transaction, violations);
             JsonNode root = objectMapper.readTree(response.body());
             String content = root.path("choices").path(0).path("message").path("content").asText();
             return objectMapper.readValue(content, AiReviewExplanation.class);
         } catch (Exception e) {
+            // 타임아웃과 응답 파싱 오류를 전체 요청 실패로 전파하지 않음
             return fallback.explain(transaction, violations);
         }
     }

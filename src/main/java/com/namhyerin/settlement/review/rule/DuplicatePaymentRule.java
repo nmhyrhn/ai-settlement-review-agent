@@ -12,6 +12,7 @@ public class DuplicatePaymentRule implements SettlementReviewRule {
 
     @Override
     public List<ReviewViolation> evaluate(SettlementTransaction target, List<SettlementTransaction> allTransactions) {
+        // 날짜·거래처·금액이 같은 거래가 두 건 이상이면 중복으로 봄
         long samePaymentCount = allTransactions.stream()
                 .filter(transaction -> samePayment(target, transaction))
                 .count();
@@ -33,4 +34,3 @@ public class DuplicatePaymentRule implements SettlementReviewRule {
                 && first.amount().compareTo(second.amount()) == 0;
     }
 }
-

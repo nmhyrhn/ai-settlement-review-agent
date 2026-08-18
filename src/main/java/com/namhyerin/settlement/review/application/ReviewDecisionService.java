@@ -16,6 +16,7 @@ public class ReviewDecisionService {
     }
 
     public DecisionHistory decide(String transactionId, DecisionStatus status) {
+        // 사용자가 선택한 상태와 결정 시각을 MySQL에 저장함
         DecisionHistory decision = new DecisionHistory(transactionId, status, Instant.now());
         jdbcTemplate.update("insert into review_decision(transaction_id, status, decided_at) values (?, ?, ?)",
                 transactionId, status.name(), decision.decidedAt().toString());
@@ -23,6 +24,7 @@ public class ReviewDecisionService {
     }
 
     public List<DecisionHistory> history(String transactionId) {
+        // 거래별 결정 이력을 생성 순서대로 조회함
         return jdbcTemplate.query("""
                         select transaction_id, status, decided_at
                         from review_decision

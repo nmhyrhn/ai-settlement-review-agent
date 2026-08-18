@@ -30,6 +30,7 @@ public class CsvSettlementParser {
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
             String firstLine = reader.readLine();
+            // UTF-8 BOM을 제거한 뒤 필수 헤더와 순서까지 검증함
             if (firstLine == null || !parseLine(firstLine.replace("\uFEFF", "")).equals(HEADER)) {
                 throw new InvalidCsvException("필수 열이 없거나 순서가 올바르지 않습니다: " + String.join(",", HEADER));
             }
@@ -50,6 +51,7 @@ public class CsvSettlementParser {
                 if (id.isBlank() || merchant.isBlank()) {
                     throw invalid(lineNumber, "거래 ID와 거래처는 필수입니다.");
                 }
+                // 같은 업로드 안의 거래 ID 중복을 차단함
                 if (!ids.add(id)) {
                     throw invalid(lineNumber, "중복 거래 ID입니다: " + id);
                 }
@@ -76,6 +78,7 @@ public class CsvSettlementParser {
     }
 
     private List<String> parseLine(String line) {
+        // 큰따옴표 안의 쉼표와 이스케이프 큰따옴표를 함께 처리함
         List<String> values = new ArrayList<>();
         StringBuilder value = new StringBuilder();
         boolean quoted = false;

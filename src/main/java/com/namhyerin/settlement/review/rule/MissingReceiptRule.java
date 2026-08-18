@@ -12,6 +12,7 @@ public class MissingReceiptRule implements SettlementReviewRule {
 
     @Override
     public List<ReviewViolation> evaluate(SettlementTransaction target, List<SettlementTransaction> allTransactions) {
+        // null과 공백 증빙 번호를 모두 누락으로 봄
         if (target.hasReceipt()) {
             return List.of();
         }
@@ -23,4 +24,3 @@ public class MissingReceiptRule implements SettlementReviewRule {
         ));
     }
 }
-

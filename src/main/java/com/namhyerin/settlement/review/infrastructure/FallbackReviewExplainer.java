@@ -15,6 +15,7 @@ public class FallbackReviewExplainer implements AiReviewExplainer {
 
     @Override
     public AiReviewExplanation explain(SettlementTransaction transaction, List<ReviewViolation> violations) {
+        // AI 사용 불가 상태에서도 동일한 응답 구조를 유지함
         if (violations.isEmpty()) {
             return new AiReviewExplanation(
                     "자동 검수에서 확인이 필요한 항목이 발견되지 않았습니다.",

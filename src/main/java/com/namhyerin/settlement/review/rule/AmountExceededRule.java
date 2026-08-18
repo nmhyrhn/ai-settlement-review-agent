@@ -15,6 +15,7 @@ public class AmountExceededRule implements SettlementReviewRule {
 
     @Override
     public List<ReviewViolation> evaluate(SettlementTransaction target, List<SettlementTransaction> allTransactions) {
+        // 기준 금액과 같은 거래는 정상이며 초과한 경우만 위반임
         if (target.amount().compareTo(LIMIT) <= 0) {
             return List.of();
         }
@@ -26,4 +27,3 @@ public class AmountExceededRule implements SettlementReviewRule {
         ));
     }
 }
-

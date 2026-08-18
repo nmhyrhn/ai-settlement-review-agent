@@ -43,6 +43,7 @@ public class SettlementReviewController {
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     public ResponseEntity<List<ReviewResult>> upload(@RequestParam("file") MultipartFile file) {
+        // 업로드 파일을 거래 목록으로 바꾼 뒤 동일한 검수 흐름에 전달함
         return ResponseEntity.ok(reviewService.review(csvParser.parse(file)));
     }
 
@@ -57,6 +58,7 @@ public class SettlementReviewController {
     @PostMapping("/{transactionId}/decisions")
     public ResponseEntity<DecisionHistory> decide(@PathVariable @NotBlank String transactionId,
                                                    @Valid @RequestBody DecisionRequest request) {
+        // AI 제안과 분리된 사용자의 최종 선택만 저장함
         return ResponseEntity.ok(decisionService.decide(transactionId, request.status()));
     }
 
