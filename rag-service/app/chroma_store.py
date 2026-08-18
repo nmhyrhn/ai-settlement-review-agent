@@ -34,3 +34,9 @@ class PolicyVectorStore:
                 "status": "ACTIVE",
             } for number in range(len(chunks))],
         )
+
+    def search(self, query: str, limit: int = 4) -> list[dict]:
+        result = self.collection.query(query_texts=[query], n_results=limit)
+        documents = result.get("documents", [[]])[0]
+        metadata = result.get("metadatas", [[]])[0]
+        return [{"text": text, **meta} for text, meta in zip(documents, metadata)]

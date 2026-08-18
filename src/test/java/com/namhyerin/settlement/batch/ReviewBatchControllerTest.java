@@ -11,6 +11,11 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import com.namhyerin.settlement.policy.PolicyRagClient;
+import java.util.List;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -31,9 +36,12 @@ class ReviewBatchControllerTest {
     @Autowired AppUserRepository userRepository;
     @Autowired PasswordEncoder passwordEncoder;
     @Autowired JdbcTemplate jdbcTemplate;
+    @MockitoBean PolicyRagClient ragClient;
 
     @BeforeEach
     void createUser() {
+        when(ragClient.explain(any(), any())).thenReturn(new PolicyRagClient.ExplanationResponse(
+                "정책 근거 설명", List.of(), "OPENAI_RAG"));
         if (userRepository.findByEmail("user@example.com").isEmpty()) {
             userRepository.create("user@example.com", passwordEncoder.encode("password123"));
         }
@@ -52,11 +60,14 @@ class ReviewBatchControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.violationCount").value(2))
+                .andExpect(jsonPath("$.explanationCount").value(1))
                 .andExpect(jsonPath("$.totalCount").value(2));
 
         Integer count = jdbcTemplate.queryForObject("select count(*) from settlement_transaction", Integer.class);
         assertThat(count).isEqualTo(2);
         Integer violations = jdbcTemplate.queryForObject("select count(*) from review_violation", Integer.class);
         assertThat(violations).isEqualTo(2);
+        Integer explanations = jdbcTemplate.queryForObject("select count(*) from review_ai_explanation", Integer.class);
+        assertThat(explanations).isEqualTo(1);
     }
 }

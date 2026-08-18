@@ -87,7 +87,7 @@ export default function App() {
           <button className="primary">CSV 배치 생성</button>
         </form>
         {message && <p role="status" className={message.includes('못') ? 'error' : 'notice'}>{message}</p>}
-        {createdBatch && <section className="card batch-created"><span className={`badge ${createdBatch.status.toLowerCase()}`}>{createdBatch.status}</span><h2>배치 #{createdBatch.batchId}</h2><p>{createdBatch.originalFilename} · 거래 {createdBatch.totalCount}건 · 위반 {createdBatch.violationCount}건</p></section>}
+        {createdBatch && <section className="card batch-created"><span className={`badge ${createdBatch.status.toLowerCase()}`}>{createdBatch.status}</span><h2>배치 #{createdBatch.batchId}</h2><p>{createdBatch.originalFilename} · 거래 {createdBatch.totalCount}건 · 위반 {createdBatch.violationCount}건 · RAG 설명 {createdBatch.explanationCount}건</p></section>}
       </>}
     </main>
   )

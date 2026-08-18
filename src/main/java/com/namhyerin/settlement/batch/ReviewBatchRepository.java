@@ -9,6 +9,9 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
 import java.util.List;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.namhyerin.settlement.policy.PolicyRagClient.ExplanationResponse;
 
 @Repository
 public class ReviewBatchRepository {
@@ -64,5 +67,19 @@ public class ReviewBatchRepository {
 
     public void complete(long batchId) {
         jdbcTemplate.update("update review_batch set status = 'COMPLETED' where id = ?", batchId);
+    }
+
+    public void saveExplanation(long batchId, String externalId, ExplanationResponse explanation,
+                                ObjectMapper objectMapper) {
+        try {
+            jdbcTemplate.update("""
+                    insert into review_ai_explanation(transaction_id, summary, citations_json, generated_by)
+                    select id, ?, ?, ? from settlement_transaction
+                    where batch_id = ? and external_transaction_id = ?
+                    """, explanation.summary(), objectMapper.writeValueAsString(explanation.citations()),
+                    explanation.generatedBy(), batchId, externalId);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("AI 인용 정보를 저장하지 못함", exception);
+        }
     }
 }

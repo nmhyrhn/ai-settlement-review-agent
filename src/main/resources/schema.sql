@@ -51,6 +51,15 @@ create table if not exists review_violation (
     foreign key (transaction_id) references settlement_transaction(id)
 );
 
+create table if not exists review_ai_explanation (
+    id bigint not null auto_increment primary key,
+    transaction_id bigint not null unique,
+    summary text not null,
+    citations_json text not null,
+    generated_by varchar(30) not null,
+    foreign key (transaction_id) references settlement_transaction(id)
+);
+
 create table if not exists review_decision (
     id bigint not null auto_increment primary key,
     transaction_id varchar(100) not null,

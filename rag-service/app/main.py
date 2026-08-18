@@ -7,6 +7,7 @@ from typing import Optional, Union
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+from openai import OpenAI
 
 from .chroma_store import PolicyVectorStore
 from .document_processing import extract_text, split_text
@@ -24,6 +25,14 @@ class DocumentRequest(BaseModel):
     filename: str
     contentType: Optional[str] = None
     contentBase64: str
+
+
+class ExplanationRequest(BaseModel):
+    transactionId: str
+    amount: str
+    merchant: str
+    violationCodes: list[str]
+    reasons: list[str]
 
 
 def verify_internal_key(x_internal_api_key: str = Header()) -> None:
@@ -46,3 +55,21 @@ def register_document(request: DocumentRequest) -> dict[str, Union[int, str]]:
         return {"status": "INDEXED", "chunkCount": len(chunks)}
     except (ValueError, UnicodeDecodeError) as exception:
         raise HTTPException(status_code=400, detail=str(exception)) from exception
+
+
+@app.post("/internal/explanations", dependencies=[Depends(verify_internal_key)])
+def explain(request: ExplanationRequest) -> dict:
+    query = " ".join(request.violationCodes + request.reasons)
+    sources = PolicyVectorStore().search(query)
+    context = "\n\n".join(source["text"] for source in sources)
+    prompt = f"""정산 검수 담당자에게 아래 위반을 한국어로 간결하게 설명함.
+거래처: {request.merchant}, 금액: {request.amount}, 위반: {query}
+반드시 제공된 정책 근거만 사용함. 관련 근거가 없으면 없다고 명시함.
+정책 근거:\n{context}"""
+    summary = OpenAI().responses.create(
+        model=os.environ.get("OPENAI_MODEL", "gpt-4.1-mini"), input=prompt
+    ).output_text
+    # 실제 검색에 사용한 청크 정보를 설명과 함께 반환함
+    citations = [{key: source[key] for key in ("document_id", "title", "version", "chunk_number")}
+                 for source in sources]
+    return {"summary": summary, "citations": citations, "generatedBy": "OPENAI_RAG"}
