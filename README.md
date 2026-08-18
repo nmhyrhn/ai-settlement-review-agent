@@ -95,6 +95,8 @@ curl -F 'file=@samples/settlements.csv' http://localhost:8080/api/reviews/upload
 ## 설계 문서
 
 - [기획 및 구현 범위](docs/planning.md)
+- [아키텍처 및 설계 의사결정](docs/architecture.md)
+- [ERD 및 데이터 정의](docs/erd.md)
 - [AI 협업 기록](docs/ai-collaboration.md)
 
 ## 검증 범위
