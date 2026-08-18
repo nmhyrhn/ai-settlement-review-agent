@@ -26,11 +26,14 @@ public class SettlementReviewService {
 
     private ReviewResult reviewOne(SettlementTransaction transaction, List<SettlementTransaction> allTransactions) {
         // 등록된 모든 규칙을 적용해 거래별 위반 결과를 모음
-        List<ReviewViolation> violations = rules.stream()
-                .flatMap(rule -> rule.evaluate(transaction, allTransactions).stream())
-                .toList();
+        List<ReviewViolation> violations = evaluate(transaction, allTransactions);
         // 규칙 판정이 끝난 뒤 AI 또는 fallback 설명을 생성함
         return new ReviewResult(transaction, violations, explainer.explain(transaction, violations));
+    }
+
+    public List<ReviewViolation> evaluate(SettlementTransaction transaction,
+                                          List<SettlementTransaction> allTransactions) {
+        return rules.stream().flatMap(rule -> rule.evaluate(transaction, allTransactions).stream()).toList();
     }
 
     public record ReviewResult(

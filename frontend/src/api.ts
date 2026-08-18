@@ -82,7 +82,7 @@ export async function uploadPolicy(title: string, file: File): Promise<Policy> {
   return response.json()
 }
 
-export type BatchCreated = { batchId: number; originalFilename: string; status: string; totalCount: number }
+export type BatchCreated = { batchId: number; originalFilename: string; status: string; totalCount: number; violationCount: number }
 
 export async function uploadBatch(file: File): Promise<BatchCreated> {
   const token = await csrf()

@@ -1,6 +1,7 @@
 package com.namhyerin.settlement.batch;
 
 import com.namhyerin.settlement.review.domain.SettlementTransaction;
+import com.namhyerin.settlement.review.domain.ReviewViolation;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -46,5 +47,22 @@ public class ReviewBatchRepository {
             statement.setString(6, transaction.receiptNumber());
         });
         jdbcTemplate.update("update review_batch set total_count = ? where id = ?", transactions.size(), batchId);
+    }
+
+    public void saveViolations(long batchId, List<ReviewViolation> violations) {
+        jdbcTemplate.batchUpdate("""
+                insert into review_violation(transaction_id, rule_code, reason)
+                select id, ?, ? from settlement_transaction
+                where batch_id = ? and external_transaction_id = ?
+                """, violations, violations.size(), (statement, violation) -> {
+            statement.setString(1, violation.ruleCode().name());
+            statement.setString(2, violation.reason());
+            statement.setLong(3, batchId);
+            statement.setString(4, violation.transactionId());
+        });
+    }
+
+    public void complete(long batchId) {
+        jdbcTemplate.update("update review_batch set status = 'COMPLETED' where id = ?", batchId);
     }
 }

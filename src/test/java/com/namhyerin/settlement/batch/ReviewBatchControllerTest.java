@@ -50,10 +50,13 @@ class ReviewBatchControllerTest {
 
         mockMvc.perform(multipart("/api/review-batches").file(csv).with(csrf()))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("PROCESSING"))
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.violationCount").value(2))
                 .andExpect(jsonPath("$.totalCount").value(2));
 
         Integer count = jdbcTemplate.queryForObject("select count(*) from settlement_transaction", Integer.class);
         assertThat(count).isEqualTo(2);
+        Integer violations = jdbcTemplate.queryForObject("select count(*) from review_violation", Integer.class);
+        assertThat(violations).isEqualTo(2);
     }
 }
