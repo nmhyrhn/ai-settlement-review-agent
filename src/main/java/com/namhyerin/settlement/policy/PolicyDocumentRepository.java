@@ -7,7 +7,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.util.List;
 
 @Repository
@@ -36,7 +35,7 @@ public class PolicyDocumentRepository {
                     insert into policy_document
                     (title, version_no, original_filename, content_type, content, status, registered_by)
                     values (?, ?, ?, ?, ?, 'PROCESSING', ?)
-                    """, Statement.RETURN_GENERATED_KEYS);
+                    """, new String[]{"id"});
             statement.setString(1, title);
             statement.setInt(2, version);
             statement.setString(3, filename);

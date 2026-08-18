@@ -81,3 +81,16 @@ export async function uploadPolicy(title: string, file: File): Promise<Policy> {
   if (!response.ok) throw new Error(await message(response))
   return response.json()
 }
+
+export type BatchCreated = { batchId: number; originalFilename: string; status: string; totalCount: number }
+
+export async function uploadBatch(file: File): Promise<BatchCreated> {
+  const token = await csrf()
+  const form = new FormData()
+  form.append('file', file)
+  const response = await fetch('/api/review-batches', {
+    method: 'POST', credentials: 'include', headers: { [token.headerName]: token.token }, body: form,
+  })
+  if (!response.ok) throw new Error(await message(response))
+  return response.json()
+}

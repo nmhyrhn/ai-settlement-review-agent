@@ -10,6 +10,7 @@ vi.mock('./api', () => ({
   register: vi.fn(),
   policies: vi.fn().mockResolvedValue([]),
   uploadPolicy: vi.fn(),
+  uploadBatch: vi.fn(),
 }))
 
 afterEach(() => {
@@ -30,4 +31,12 @@ test('관리자에게 정책 문서 등록 화면을 표시함', async () => {
 
   await waitFor(() => expect(screen.getByRole('heading', { name: '정산 정책 관리' })).toBeInTheDocument())
   expect(screen.getByRole('button', { name: '정책 문서 등록' })).toBeInTheDocument()
+})
+
+test('일반 사용자에게 CSV 배치 생성 화면을 표시함', async () => {
+  vi.mocked(currentUser).mockResolvedValue({ email: 'user@example.com', role: 'USER' })
+  render(<App />)
+
+  await waitFor(() => expect(screen.getByRole('button', { name: 'CSV 배치 생성' })).toBeInTheDocument())
+  expect(screen.getByLabelText('정산 CSV')).toBeInTheDocument()
 })

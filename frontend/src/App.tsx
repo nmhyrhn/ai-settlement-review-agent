@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { currentUser, login, logout, policies, Policy, register, uploadPolicy } from './api'
+import { BatchCreated, currentUser, login, logout, policies, Policy, register, uploadBatch, uploadPolicy } from './api'
 import './style.css'
 
 type Mode = 'login' | 'register'
@@ -11,6 +11,7 @@ export default function App() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [documents, setDocuments] = useState<Policy[]>([])
+  const [createdBatch, setCreatedBatch] = useState<BatchCreated | null>(null)
 
   useEffect(() => {
     currentUser().then(setUser).catch((error) => setMessage(error.message)).finally(() => setLoading(false))
@@ -52,6 +53,19 @@ export default function App() {
     }
   }
 
+  async function submitBatch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const file = new FormData(event.currentTarget).get('file')
+    if (!(file instanceof File)) return
+    setMessage('CSV 거래 저장 중…')
+    try {
+      setCreatedBatch(await uploadBatch(file))
+      setMessage('검수 배치를 생성했음')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '검수 배치를 생성하지 못했습니다.')
+    }
+  }
+
   if (loading) return <main className="auth-shell"><p>로그인 상태 확인 중…</p></main>
 
   if (user) return (
@@ -66,7 +80,15 @@ export default function App() {
         </form>
         {message && <p role="status" className={message.includes('못') ? 'error' : 'notice'}>{message}</p>}
         <section className="card policy-list"><h2>등록 문서</h2>{documents.length === 0 ? <p>등록된 정책 문서가 없음</p> : <table><thead><tr><th>정책</th><th>버전</th><th>상태</th><th>등록자</th></tr></thead><tbody>{documents.map(document => <tr key={document.id}><td><b>{document.title}</b><small>{document.originalFilename}</small></td><td>v{document.versionNo}</td><td><span className={`badge ${document.status.toLowerCase()}`}>{document.status}</span></td><td>{document.registeredBy}</td></tr>)}</tbody></table>}</section>
-      </> : <section className="card"><p>CSV 검수 기능을 준비 중임</p></section>}
+      </> : <>
+        <form className="card batch-form" onSubmit={submitBatch}>
+          <div><h2>새 검수 배치</h2><p>정산 CSV를 올리면 거래를 검수 배치에 저장함</p></div>
+          <label>정산 CSV<input name="file" type="file" accept=".csv,text/csv" required /></label>
+          <button className="primary">CSV 배치 생성</button>
+        </form>
+        {message && <p role="status" className={message.includes('못') ? 'error' : 'notice'}>{message}</p>}
+        {createdBatch && <section className="card batch-created"><span className="badge processing">{createdBatch.status}</span><h2>배치 #{createdBatch.batchId}</h2><p>{createdBatch.originalFilename} · 거래 {createdBatch.totalCount}건 저장됨</p></section>}
+      </>}
     </main>
   )
 

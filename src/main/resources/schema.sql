@@ -19,6 +19,30 @@ create table if not exists policy_document (
     unique key uk_policy_document_title_version (title, version_no)
 );
 
+create table if not exists review_batch (
+    id bigint not null auto_increment primary key,
+    created_by bigint not null,
+    original_filename varchar(255) not null,
+    status varchar(20) not null,
+    rule_version varchar(20) not null,
+    total_count int not null default 0,
+    created_at timestamp not null default current_timestamp,
+    foreign key (created_by) references app_user(id)
+);
+
+create table if not exists settlement_transaction (
+    id bigint not null auto_increment primary key,
+    batch_id bigint not null,
+    external_transaction_id varchar(100) not null,
+    transaction_date date not null,
+    merchant varchar(200) not null,
+    amount decimal(19, 2) not null,
+    receipt_number varchar(100),
+    review_status varchar(20) not null default 'PENDING',
+    foreign key (batch_id) references review_batch(id),
+    unique key uk_settlement_transaction_batch_external (batch_id, external_transaction_id)
+);
+
 create table if not exists review_decision (
     id bigint not null auto_increment primary key,
     transaction_id varchar(100) not null,
