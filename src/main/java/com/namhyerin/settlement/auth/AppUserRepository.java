@@ -17,10 +17,14 @@ public class AppUserRepository {
     }
 
     public AppUser create(String email, String passwordHash) {
+        return create(email, passwordHash, "USER");
+    }
+
+    public AppUser create(String email, String passwordHash, String role) {
         String normalizedEmail = normalize(email);
         try {
-            jdbcClient.sql("insert into app_user(email, password_hash, role) values (?, ?, 'USER')")
-                    .params(normalizedEmail, passwordHash)
+            jdbcClient.sql("insert into app_user(email, password_hash, role) values (?, ?, ?)")
+                    .params(normalizedEmail, passwordHash, role)
                     .update();
         } catch (DuplicateKeyException exception) {
             throw new DuplicateEmailException();

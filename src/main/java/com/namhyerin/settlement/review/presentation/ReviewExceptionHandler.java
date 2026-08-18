@@ -1,6 +1,7 @@
 package com.namhyerin.settlement.review.presentation;
 
 import com.namhyerin.settlement.review.exception.InvalidCsvException;
+import com.namhyerin.settlement.policy.PolicyDocumentService.PolicyIndexException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -19,5 +20,15 @@ public class ReviewExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<Map<String, String>> invalidRequest(MethodArgumentNotValidException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "요청 값을 확인해 주세요."));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    ResponseEntity<Map<String, String>> invalidFile(IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(PolicyIndexException.class)
+    ResponseEntity<Map<String, String>> unavailableRag(PolicyIndexException e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("message", e.getMessage()));
     }
 }

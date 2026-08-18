@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { currentUser, login, logout, register } from './api'
+import { currentUser, login, logout, policies, Policy, register, uploadPolicy } from './api'
 import './style.css'
 
 type Mode = 'login' | 'register'
@@ -10,10 +10,32 @@ export default function App() {
   const [mode, setMode] = useState<Mode>('login')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
+  const [documents, setDocuments] = useState<Policy[]>([])
 
   useEffect(() => {
     currentUser().then(setUser).catch((error) => setMessage(error.message)).finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (user?.role === 'ADMIN') policies().then(setDocuments).catch((error) => setMessage(error.message))
+  }, [user])
+
+  async function submitPolicy(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
+    const file = form.get('file')
+    if (!(file instanceof File)) return
+    setMessage('정책 문서 처리 중…')
+    try {
+      await uploadPolicy(String(form.get('title')), file)
+      setDocuments(await policies())
+      formElement.reset()
+      setMessage('정책 문서를 등록했음')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '정책 문서를 등록하지 못했습니다.')
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -33,13 +55,18 @@ export default function App() {
   if (loading) return <main className="auth-shell"><p>로그인 상태 확인 중…</p></main>
 
   if (user) return (
-    <main className="auth-shell">
-      <section className="card welcome">
-        <span className="eyebrow">AI SETTLEMENT REVIEW</span>
-        <h1>{user.email}</h1>
-        <p>{user.role === 'ADMIN' ? '관리자' : '검수 담당자'}로 로그인됨</p>
-        <button onClick={async () => { await logout(); setUser(null) }}>로그아웃</button>
-      </section>
+    <main className="dashboard">
+      <header><div><span className="eyebrow">AI SETTLEMENT REVIEW</span><strong>{user.email}</strong></div><button onClick={async () => { await logout(); setUser(null) }}>로그아웃</button></header>
+      <section className="dashboard-title"><p>{user.role === 'ADMIN' ? '관리자' : '검수 담당자'}</p><h1>{user.role === 'ADMIN' ? '정산 정책 관리' : '정산 검수'}</h1></section>
+      {user.role === 'ADMIN' ? <>
+        <form className="card policy-form" onSubmit={submitPolicy}>
+          <label>정책명<input name="title" placeholder="예: 국내 정산 운영 규정" required /></label>
+          <label>정책 파일<input name="file" type="file" accept=".pdf,.md,.txt" required /></label>
+          <button className="primary">정책 문서 등록</button>
+        </form>
+        {message && <p role="status" className={message.includes('못') ? 'error' : 'notice'}>{message}</p>}
+        <section className="card policy-list"><h2>등록 문서</h2>{documents.length === 0 ? <p>등록된 정책 문서가 없음</p> : <table><thead><tr><th>정책</th><th>버전</th><th>상태</th><th>등록자</th></tr></thead><tbody>{documents.map(document => <tr key={document.id}><td><b>{document.title}</b><small>{document.originalFilename}</small></td><td>v{document.versionNo}</td><td><span className={`badge ${document.status.toLowerCase()}`}>{document.status}</span></td><td>{document.registeredBy}</td></tr>)}</tbody></table>}</section>
+      </> : <section className="card"><p>CSV 검수 기능을 준비 중임</p></section>}
     </main>
   )
 

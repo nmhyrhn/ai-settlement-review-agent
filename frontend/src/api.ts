@@ -50,3 +50,34 @@ export async function logout() {
   })
   if (!response.ok) throw new Error(await message(response))
 }
+
+export type Policy = {
+  id: number
+  title: string
+  versionNo: number
+  originalFilename: string
+  status: string
+  registeredBy: string
+  createdAt: string
+}
+
+export async function policies(): Promise<Policy[]> {
+  const response = await fetch('/api/admin/policies', { credentials: 'include' })
+  if (!response.ok) throw new Error(await message(response))
+  return response.json()
+}
+
+export async function uploadPolicy(title: string, file: File): Promise<Policy> {
+  const token = await csrf()
+  const form = new FormData()
+  form.append('title', title)
+  form.append('file', file)
+  const response = await fetch('/api/admin/policies', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { [token.headerName]: token.token },
+    body: form,
+  })
+  if (!response.ok) throw new Error(await message(response))
+  return response.json()
+}

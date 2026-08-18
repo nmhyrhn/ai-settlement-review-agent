@@ -18,6 +18,9 @@
 - 구조화된 AI 설명과 API 장애 fallback
 - CSV 검수 결과 화면
 - 사용자 정상 처리·재확인·보류와 MySQL 영구 이력
+- 세션 기반 회원가입·로그인과 사용자·관리자 권한
+- 별도 React + TypeScript 프론트엔드
+- 관리자 정책 문서 등록과 Chroma 인덱싱
 - 검수 규칙 단위 테스트
 
 ## 기술 스택
@@ -29,6 +32,8 @@
 - JUnit 5 / AssertJ
 - Gradle
 - MySQL 8 이상
+- React / TypeScript / Vite
+- Python / FastAPI / Chroma
 
 ## 실행
 
@@ -47,7 +52,27 @@ cp .env.example .env
 ./gradlew bootRun
 ```
 
-브라우저에서 `http://localhost:8080`을 엽니다. API 키가 없으면 기본 설명으로 정상 동작합니다.
+React 화면은 별도 터미널에서 실행합니다.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+정책 문서 등록을 사용할 때 Python 서비스를 실행합니다.
+
+```bash
+cd rag-service
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+set -a
+source ../.env
+set +a
+.venv/bin/uvicorn app.main:app --reload --port 8001
+```
+
+브라우저에서 `http://localhost:5173`을 엽니다. 로컬 관리자 계정은 `.env`의 `ADMIN_EMAIL`, `ADMIN_PASSWORD`로 생성합니다.
 
 Windows PowerShell에서는 다음 명령을 사용합니다.
 
@@ -108,6 +133,7 @@ curl -F 'file=@samples/settlements.csv' http://localhost:8080/api/reviews/upload
 
 ## 후속 구현
 
-- 로그인과 사용자별 권한
+- 검수 배치·거래·위반 결과 영구 저장
+- 정책 검색을 이용한 AI 설명과 인용
 
 
