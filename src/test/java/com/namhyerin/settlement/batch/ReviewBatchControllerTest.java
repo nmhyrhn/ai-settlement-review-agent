@@ -40,6 +40,10 @@ class ReviewBatchControllerTest {
 
     @BeforeEach
     void createUser() {
+        jdbcTemplate.update("delete from review_ai_explanation");
+        jdbcTemplate.update("delete from review_violation");
+        jdbcTemplate.update("delete from settlement_transaction");
+        jdbcTemplate.update("delete from review_batch");
         when(ragClient.explain(any(), any())).thenReturn(new PolicyRagClient.ExplanationResponse(
                 "정책 근거 설명", List.of(), "OPENAI_RAG"));
         if (userRepository.findByEmail("user@example.com").isEmpty()) {
@@ -69,5 +73,24 @@ class ReviewBatchControllerTest {
         assertThat(violations).isEqualTo(2);
         Integer explanations = jdbcTemplate.queryForObject("select count(*) from review_ai_explanation", Integer.class);
         assertThat(explanations).isEqualTo(1);
+    }
+
+    @Test
+    @WithMockUser(username = "user@example.com")
+    void completesBatchWithFallbackWhenRagFails() throws Exception {
+        when(ragClient.explain(any(), any())).thenThrow(new RuntimeException("RAG 연결 실패"));
+        var csv = new MockMultipartFile("file", "fallback.csv", "text/csv", """
+                transactionId,transactionDate,merchant,amount,receiptNumber
+                F-001,2026-08-18,장애테스트상사,1250000,
+                """.getBytes());
+
+        mockMvc.perform(multipart("/api/review-batches").file(csv).with(csrf()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+
+        String generatedBy = jdbcTemplate.queryForObject("""
+                select generated_by from review_ai_explanation order by id desc limit 1
+                """, String.class);
+        assertThat(generatedBy).isEqualTo("RULE_FALLBACK");
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ReviewBatchService {
@@ -51,13 +52,26 @@ public class ReviewBatchService {
                     .filter(violation -> violation.transactionId().equals(transaction.transactionId())).toList();
             if (!transactionViolations.isEmpty()) {
                 batchRepository.saveExplanation(batchId, transaction.transactionId(),
-                        ragClient.explain(transaction, transactionViolations), objectMapper);
+                        explain(transaction, transactionViolations), objectMapper);
             }
         });
         batchRepository.complete(batchId);
         int explanationCount = (int) violations.stream().map(ReviewViolation::transactionId).distinct().count();
         return new BatchCreated(batchId, file.getOriginalFilename(), "COMPLETED", transactions.size(),
                 violations.size(), explanationCount);
+    }
+
+    private PolicyRagClient.ExplanationResponse explain(SettlementTransaction transaction,
+                                                        List<ReviewViolation> violations) {
+        try {
+            return ragClient.explain(transaction, violations);
+        } catch (RuntimeException exception) {
+            // RAG 장애가 발생해도 확정된 규칙 위반 결과와 배치 처리를 유지함
+            String summary = violations.stream().map(ReviewViolation::reason).distinct()
+                    .reduce((left, right) -> left + " " + right).orElse("규칙 위반을 확인해야 함");
+            return new PolicyRagClient.ExplanationResponse(summary, List.<Map<String, Object>>of(),
+                    "RULE_FALLBACK");
+        }
     }
 
     public record BatchCreated(long batchId, String originalFilename, String status, int totalCount,
