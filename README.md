@@ -12,12 +12,10 @@
 - 증빙 번호 누락 검수
 - 날짜·거래처·금액 기준 중복 결제 검수
 - 여러 검수 규칙을 조합하는 서비스
-- AI 장애 시에도 사용할 수 있는 기본 설명 구현
-- JSON 기반 검수 API
-- CSV 업로드·입력 검증 API
-- 구조화된 AI 설명과 API 장애 fallback
-- CSV 검수 결과 화면
-- 사용자 정상 처리·재확인·보류와 MySQL 영구 이력
+- CSV 업로드·입력 검증과 검수 배치 영구 저장
+- 거래별 규칙 위반과 과거 배치 상세 조회
+- 정책 검색 기반 구조화된 AI 설명과 RAG 장애 fallback
+- 사용자 정상 처리·재확인·보류와 MySQL 판단 이력
 - 세션 기반 회원가입·로그인과 사용자·관리자 권한
 - 별도 React + TypeScript 프론트엔드
 - 관리자 정책 문서 등록과 Chroma 인덱싱
@@ -80,41 +78,34 @@ Windows PowerShell에서는 다음 명령을 사용합니다.
 .\gradlew.bat bootRun
 ```
 
-CSV 업로드 API는 `POST /api/reviews/upload`입니다.
+CSV 배치 업로드 API는 로그인 세션과 CSRF 토큰이 필요한 `POST /api/review-batches`입니다. 브라우저 화면을 이용하면 인증부터 업로드와 결과 확인까지 한 흐름으로 테스트할 수 있습니다.
 
-```bash
-curl -F 'file=@samples/settlements.csv' http://localhost:8080/api/reviews/upload
-```
+주요 API는 다음과 같습니다.
 
-사용자 결정은 `POST /api/reviews/{transactionId}/decisions`, 이력 조회는 `GET`으로 제공합니다.
+| 기능 | Method | 경로 |
+|---|---|---|
+| 회원가입 | `POST` | `/api/auth/register` |
+| 로그인 | `POST` | `/api/auth/login` |
+| 정책 목록·등록 | `GET`, `POST` | `/api/admin/policies` |
+| CSV 검수 배치 생성 | `POST` | `/api/review-batches` |
+| 배치 상세 조회 | `GET` | `/api/review-batches/{batchId}` |
+| 거래 담당자 판단 | `POST` | `/api/review-batches/{batchId}/transactions/{transactionId}/decisions` |
 
 ## 실행 화면
 
 ![AI 정산 검수 실행 화면](docs/images/ai-settlement-review-agent.jpg)
 
-## API 예시
+## 테스트
 
-`POST /api/reviews/analyze`
+```bash
+./gradlew test
 
-```json
-{
-  "transactions": [
-    {
-      "transactionId": "T-001",
-      "transactionDate": "2026-08-18",
-      "merchant": "ABC상사",
-      "amount": 1250000,
-      "receiptNumber": null
-    },
-    {
-      "transactionId": "T-002",
-      "transactionDate": "2026-08-18",
-      "merchant": "ABC상사",
-      "amount": 1250000,
-      "receiptNumber": "R-002"
-    }
-  ]
-}
+cd frontend
+npm run test
+npm run build
+
+cd ../rag-service
+.venv/bin/python -m unittest discover -s tests -v
 ```
 
 ## 설계 문서
@@ -126,14 +117,11 @@ curl -F 'file=@samples/settlements.csv' http://localhost:8080/api/reviews/upload
 
 ## 검증 범위
 
-- 검수 규칙·CSV 파서·처리 이력 단위 테스트
-- CSV 업로드와 처리 결정 API 통합 테스트
-- 샘플 CSV 브라우저 업로드와 AI/fallback 화면 확인
+- 검수 규칙·CSV 파서 단위 테스트
+- 인증, 배치 저장·상세 조회, 담당자 판단, RAG fallback API 통합 테스트
+- React 로그인·CSV 업로드·상세 결과 컴포넌트 테스트와 프로덕션 빌드
+- Python 정책 색인·검색·설명 응답 단위 테스트
+- 샘플 CSV 브라우저 업로드와 결과 화면 확인
 - H2 MySQL 호환 모드 통합 테스트
-
-## 후속 구현
-
-- 검수 배치·거래·위반 결과 영구 저장
-- 정책 검색을 이용한 AI 설명과 인용
 
 
