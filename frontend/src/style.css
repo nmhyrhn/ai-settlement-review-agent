@@ -45,5 +45,11 @@ td small { display: block; margin-top: 4px; color: #667085; }
 .batch-created { margin-top: 24px; }
 .badge.processing { color: #175cd3; background: #eff8ff; }
 .badge.completed { color: #067647; background: #ecfdf3; }
+.review-detail { margin-top: 24px; }
+.review-detail article { display: grid; grid-template-columns: minmax(180px, .7fr) 2fr; gap: 24px; padding: 20px 0; border-bottom: 1px solid #e7ebf1; }
+.review-detail article:last-child { border-bottom: 0; }
+.review-detail article span, .ai-summary small { display: block; margin-top: 5px; color: #667085; }
+.review-detail article p { margin: 0 0 8px; }
+.ai-summary { padding: 12px; border-radius: 10px; background: #f5f8ff; }
 @media (max-width: 860px) { .auth-shell { grid-template-columns: 1fr; gap: 36px; padding: 28px 20px; } .intro h1 { font-size: 42px; } }
-@media (max-width: 760px) { .policy-form, .batch-form { grid-template-columns: 1fr; } .dashboard { padding-inline: 20px; } }
+@media (max-width: 760px) { .policy-form, .batch-form, .review-detail article { grid-template-columns: 1fr; } .dashboard { padding-inline: 20px; } }

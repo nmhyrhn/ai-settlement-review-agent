@@ -13,6 +13,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @Service
 public class ReviewBatchService {
@@ -74,7 +78,45 @@ public class ReviewBatchService {
         }
     }
 
+    public BatchDetail detail(long batchId, String email, boolean admin) {
+        var batch = batchRepository.findBatch(batchId, email, admin)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        List<TransactionDetail> transactions = batchRepository.findTransactions(batchId).stream()
+                .map(transaction -> new TransactionDetail(transaction.id(), transaction.transactionId(),
+                        transaction.transactionDate(), transaction.merchant(), transaction.amount(),
+                        transaction.receiptNumber(), transaction.reviewStatus(),
+                        batchRepository.findViolations(transaction.id()), explanation(transaction.id())))
+                .toList();
+        return new BatchDetail(batch.id(), batch.originalFilename(), batch.status(), batch.totalCount(),
+                batch.createdAt(), transactions);
+    }
+
+    private ExplanationDetail explanation(long transactionId) {
+        return batchRepository.findExplanation(transactionId).map(explanation -> {
+            try {
+                List<Map<String, Object>> citations = objectMapper.readValue(explanation.citationsJson(),
+                        new TypeReference<>() {});
+                return new ExplanationDetail(explanation.summary(), citations, explanation.generatedBy());
+            } catch (com.fasterxml.jackson.core.JsonProcessingException exception) {
+                throw new IllegalStateException("AI 인용 정보를 읽지 못함", exception);
+            }
+        }).orElse(null);
+    }
+
     public record BatchCreated(long batchId, String originalFilename, String status, int totalCount,
                                int violationCount, int explanationCount) {
+    }
+
+    public record BatchDetail(long batchId, String originalFilename, String status, int totalCount,
+                              java.time.LocalDateTime createdAt, List<TransactionDetail> transactions) {
+    }
+
+    public record TransactionDetail(long id, String transactionId, java.time.LocalDate transactionDate,
+                                    String merchant, java.math.BigDecimal amount, String receiptNumber,
+                                    String reviewStatus, List<ReviewBatchRepository.ViolationRow> violations,
+                                    ExplanationDetail explanation) {
+    }
+
+    public record ExplanationDetail(String summary, List<Map<String, Object>> citations, String generatedBy) {
     }
 }

@@ -94,3 +94,22 @@ export async function uploadBatch(file: File): Promise<BatchCreated> {
   if (!response.ok) throw new Error(await message(response))
   return response.json()
 }
+
+export type BatchDetail = BatchCreated & {
+  createdAt: string
+  transactions: Array<{
+    id: number
+    transactionId: string
+    merchant: string
+    amount: number
+    reviewStatus: string
+    violations: Array<{ ruleCode: string; reason: string }>
+    explanation: null | { summary: string; citations: Array<Record<string, unknown>>; generatedBy: string }
+  }>
+}
+
+export async function getBatch(batchId: number): Promise<BatchDetail> {
+  const response = await fetch(`/api/review-batches/${batchId}`, { credentials: 'include' })
+  if (!response.ok) throw new Error(await message(response))
+  return response.json()
+}

@@ -9,6 +9,10 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
 import java.util.List;
+import java.util.Optional;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.namhyerin.settlement.policy.PolicyRagClient.ExplanationResponse;
@@ -81,5 +85,55 @@ public class ReviewBatchRepository {
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("AI 인용 정보를 저장하지 못함", exception);
         }
+    }
+
+    public Optional<BatchRow> findBatch(long batchId, String email, boolean admin) {
+        return jdbcTemplate.query("""
+                select b.id, b.original_filename, b.status, b.total_count, b.created_at
+                from review_batch b join app_user u on u.id = b.created_by
+                where b.id = ? and (? = true or u.email = ?)
+                """, (result, row) -> new BatchRow(result.getLong("id"), result.getString("original_filename"),
+                        result.getString("status"), result.getInt("total_count"),
+                        result.getTimestamp("created_at").toLocalDateTime()), batchId, admin, email)
+                .stream().findFirst();
+    }
+
+    public List<TransactionRow> findTransactions(long batchId) {
+        return jdbcTemplate.query("""
+                select id, external_transaction_id, transaction_date, merchant, amount,
+                       receipt_number, review_status
+                from settlement_transaction where batch_id = ? order by id
+                """, (result, row) -> new TransactionRow(result.getLong("id"),
+                        result.getString("external_transaction_id"), result.getObject("transaction_date", LocalDate.class),
+                        result.getString("merchant"), result.getBigDecimal("amount"),
+                        result.getString("receipt_number"), result.getString("review_status")), batchId);
+    }
+
+    public List<ViolationRow> findViolations(long transactionId) {
+        return jdbcTemplate.query("select rule_code, reason from review_violation where transaction_id = ? order by id",
+                (result, row) -> new ViolationRow(result.getString("rule_code"), result.getString("reason")),
+                transactionId);
+    }
+
+    public Optional<ExplanationRow> findExplanation(long transactionId) {
+        return jdbcTemplate.query("""
+                select summary, citations_json, generated_by from review_ai_explanation where transaction_id = ?
+                """, (result, row) -> new ExplanationRow(result.getString("summary"),
+                        result.getString("citations_json"), result.getString("generated_by")), transactionId)
+                .stream().findFirst();
+    }
+
+    public record BatchRow(long id, String originalFilename, String status, int totalCount,
+                           LocalDateTime createdAt) {
+    }
+
+    public record TransactionRow(long id, String transactionId, LocalDate transactionDate, String merchant,
+                                 BigDecimal amount, String receiptNumber, String reviewStatus) {
+    }
+
+    public record ViolationRow(String ruleCode, String reason) {
+    }
+
+    public record ExplanationRow(String summary, String citationsJson, String generatedBy) {
     }
 }

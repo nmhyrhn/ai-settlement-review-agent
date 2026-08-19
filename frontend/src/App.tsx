@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { BatchCreated, currentUser, login, logout, policies, Policy, register, uploadBatch, uploadPolicy } from './api'
+import { BatchCreated, BatchDetail, currentUser, getBatch, login, logout, policies, Policy, register, uploadBatch, uploadPolicy } from './api'
 import './style.css'
 
 type Mode = 'login' | 'register'
@@ -12,6 +12,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [documents, setDocuments] = useState<Policy[]>([])
   const [createdBatch, setCreatedBatch] = useState<BatchCreated | null>(null)
+  const [batchDetail, setBatchDetail] = useState<BatchDetail | null>(null)
 
   useEffect(() => {
     currentUser().then(setUser).catch((error) => setMessage(error.message)).finally(() => setLoading(false))
@@ -59,7 +60,9 @@ export default function App() {
     if (!(file instanceof File)) return
     setMessage('CSV 거래 저장 중…')
     try {
-      setCreatedBatch(await uploadBatch(file))
+      const created = await uploadBatch(file)
+      setCreatedBatch(created)
+      setBatchDetail(await getBatch(created.batchId))
       setMessage('검수 배치를 생성했음')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '검수 배치를 생성하지 못했습니다.')
@@ -88,6 +91,7 @@ export default function App() {
         </form>
         {message && <p role="status" className={message.includes('못') ? 'error' : 'notice'}>{message}</p>}
         {createdBatch && <section className="card batch-created"><span className={`badge ${createdBatch.status.toLowerCase()}`}>{createdBatch.status}</span><h2>배치 #{createdBatch.batchId}</h2><p>{createdBatch.originalFilename} · 거래 {createdBatch.totalCount}건 · 위반 {createdBatch.violationCount}건 · RAG 설명 {createdBatch.explanationCount}건</p></section>}
+        {batchDetail && <section className="card review-detail"><h2>거래별 검수 결과</h2>{batchDetail.transactions.map(transaction => <article key={transaction.id}><div><b>{transaction.transactionId}</b><span>{transaction.merchant} · {Number(transaction.amount).toLocaleString()}원</span></div><div>{transaction.violations.length ? transaction.violations.map(violation => <p key={violation.ruleCode}><strong>{violation.ruleCode}</strong> {violation.reason}</p>) : <p>위반 없음</p>}{transaction.explanation && <p className="ai-summary">{transaction.explanation.summary}<small>{transaction.explanation.generatedBy} · 정책 출처 {transaction.explanation.citations.length}건</small></p>}</div></article>)}</section>}
       </>}
     </main>
   )
