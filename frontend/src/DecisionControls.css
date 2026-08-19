@@ -1,0 +1,33 @@
+.decision-controls {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+.decision-controls input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #d8ddd7;
+  border-radius: 0.65rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.decision-controls > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.decision-controls button {
+  border: 1px solid #1d4939;
+  border-radius: 999px;
+  background: #fff;
+  color: #1d4939;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+}
+
+.decision-controls button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}

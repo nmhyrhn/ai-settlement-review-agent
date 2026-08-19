@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, expect, test, vi } from 'vitest'
 import App from './App'
 import { currentUser, getBatch, uploadBatch } from './api'
+import { saveDecision } from './decisionApi'
 
 vi.mock('./api', () => ({
   currentUser: vi.fn().mockResolvedValue(null),
@@ -14,8 +15,11 @@ vi.mock('./api', () => ({
   getBatch: vi.fn(),
 }))
 
+vi.mock('./decisionApi', () => ({ saveDecision: vi.fn() }))
+
 afterEach(() => {
   cleanup()
+  vi.clearAllMocks()
   vi.mocked(currentUser).mockResolvedValue(null)
 })
 
@@ -60,4 +64,28 @@ test('CSV 생성 후 거래별 검수 결과를 표시함', async () => {
 
   await waitFor(() => expect(screen.getByText('정책 근거 설명')).toBeInTheDocument())
   expect(screen.getByText('AMOUNT_EXCEEDED')).toBeInTheDocument()
+})
+
+test('거래 담당자 판단을 저장하고 상세 상태를 다시 조회함', async () => {
+  vi.mocked(currentUser).mockResolvedValue({ email: 'user@example.com', role: 'USER' })
+  vi.mocked(uploadBatch).mockResolvedValue({ batchId: 1, originalFilename: 'sample.csv', status: 'COMPLETED', totalCount: 1, violationCount: 1, explanationCount: 1 })
+  vi.mocked(getBatch).mockResolvedValue({
+    batchId: 1, originalFilename: 'sample.csv', status: 'COMPLETED', totalCount: 1,
+    violationCount: 1, explanationCount: 1, createdAt: '2026-08-19T08:00:00',
+    transactions: [{ id: 1, transactionId: 'T-001', merchant: 'ABC상사', amount: 1250000,
+      reviewStatus: 'PENDING', violations: [{ ruleCode: 'AMOUNT_EXCEEDED', reason: '고액 거래임' }],
+      explanation: { summary: '정책 근거 설명', citations: [{}], generatedBy: 'OPENAI_RAG' } }],
+  })
+  vi.mocked(saveDecision).mockResolvedValue({ status: 'RECHECK' })
+  render(<App />)
+  await waitFor(() => expect(screen.getByRole('button', { name: 'CSV 배치 생성' })).toBeInTheDocument())
+  fireEvent.change(screen.getByLabelText('정산 CSV'), { target: { files: [new File(['csv'], 'sample.csv')] } })
+  fireEvent.submit(screen.getByRole('button', { name: 'CSV 배치 생성' }).closest('form')!)
+
+  fireEvent.change(await screen.findByLabelText('판단 사유'), { target: { value: '증빙 재확인' } })
+  fireEvent.click(screen.getByRole('button', { name: '재확인' }))
+
+  await waitFor(() => expect(saveDecision).toHaveBeenCalledWith(1, 1, 'RECHECK', '증빙 재확인'))
+  expect(getBatch).toHaveBeenCalledTimes(2)
+  expect(await screen.findByText('담당자 판단을 저장했음')).toBeInTheDocument()
 })

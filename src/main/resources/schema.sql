@@ -60,6 +60,18 @@ create table if not exists review_ai_explanation (
     foreign key (transaction_id) references settlement_transaction(id)
 );
 
+create table if not exists transaction_decision (
+    id bigint not null auto_increment primary key,
+    transaction_id bigint not null,
+    status varchar(20) not null,
+    reason varchar(500),
+    decided_by bigint not null,
+    decided_at timestamp not null default current_timestamp,
+    foreign key (transaction_id) references settlement_transaction(id),
+    foreign key (decided_by) references app_user(id),
+    index idx_transaction_decision_transaction_id (transaction_id)
+);
+
 create table if not exists review_decision (
     id bigint not null auto_increment primary key,
     transaction_id varchar(100) not null,

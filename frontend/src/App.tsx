@@ -1,5 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { BatchCreated, BatchDetail, currentUser, getBatch, login, logout, policies, Policy, register, uploadBatch, uploadPolicy } from './api'
+import DecisionControls, { DecisionStatus } from './DecisionControls'
+import { saveDecision } from './decisionApi'
 import './style.css'
 
 type Mode = 'login' | 'register'
@@ -69,6 +71,17 @@ export default function App() {
     }
   }
 
+  async function decide(transactionId: number, status: DecisionStatus, reason: string) {
+    if (!batchDetail) return
+    try {
+      await saveDecision(batchDetail.batchId, transactionId, status, reason)
+      setBatchDetail(await getBatch(batchDetail.batchId))
+      setMessage('담당자 판단을 저장했음')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '담당자 판단을 저장하지 못했습니다.')
+    }
+  }
+
   if (loading) return <main className="auth-shell"><p>로그인 상태 확인 중…</p></main>
 
   if (user) return (
@@ -91,7 +104,7 @@ export default function App() {
         </form>
         {message && <p role="status" className={message.includes('못') ? 'error' : 'notice'}>{message}</p>}
         {createdBatch && <section className="card batch-created"><span className={`badge ${createdBatch.status.toLowerCase()}`}>{createdBatch.status}</span><h2>배치 #{createdBatch.batchId}</h2><p>{createdBatch.originalFilename} · 거래 {createdBatch.totalCount}건 · 위반 {createdBatch.violationCount}건 · RAG 설명 {createdBatch.explanationCount}건</p></section>}
-        {batchDetail && <section className="card review-detail"><h2>거래별 검수 결과</h2>{batchDetail.transactions.map(transaction => <article key={transaction.id}><div><b>{transaction.transactionId}</b><span>{transaction.merchant} · {Number(transaction.amount).toLocaleString()}원</span></div><div>{transaction.violations.length ? transaction.violations.map(violation => <p key={violation.ruleCode}><strong>{violation.ruleCode}</strong> {violation.reason}</p>) : <p>위반 없음</p>}{transaction.explanation && <p className="ai-summary">{transaction.explanation.summary}<small>{transaction.explanation.generatedBy} · 정책 출처 {transaction.explanation.citations.length}건</small></p>}</div></article>)}</section>}
+        {batchDetail && <section className="card review-detail"><h2>거래별 검수 결과</h2>{batchDetail.transactions.map(transaction => <article key={transaction.id}><div><b>{transaction.transactionId}</b><span>{transaction.merchant} · {Number(transaction.amount).toLocaleString()}원</span><small>현재 상태 · {transaction.reviewStatus}</small></div><div>{transaction.violations.length ? transaction.violations.map(violation => <p key={violation.ruleCode}><strong>{violation.ruleCode}</strong> {violation.reason}</p>) : <p>위반 없음</p>}{transaction.explanation && <p className="ai-summary">{transaction.explanation.summary}<small>{transaction.explanation.generatedBy} · 정책 출처 {transaction.explanation.citations.length}건</small></p>}<DecisionControls onDecide={(status, reason) => decide(transaction.id, status, reason)} /></div></article>)}</section>}
       </>}
     </main>
   )
